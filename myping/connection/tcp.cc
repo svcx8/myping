@@ -9,20 +9,17 @@ using std::chrono::duration_cast;
 using std::chrono::milliseconds;
 using std::chrono::system_clock;
 
-std::map<int, TcpConn> EchoConn::conn_list_;
+constexpr int timeout_sec = 3;
 
-void EchoConn::OnReadable(SOCKET Socket) {
+void PingConn::OnReadable(SOCKET Socket) {
     logger("%s", __FUNCTION__);
 }
 
-void EchoConn::OnWritable(SOCKET Socket) {
-    // logger("%s", __FUNCTION__);
-    // auto& conn = conn_list_[Socket];
-    // logger("Spend: %lld ms", conn.Duration());
+void PingConn::OnWritable(SOCKET Socket) {
     CloseSocket(Socket);
 }
 
-void EchoConn::OnCloseable(SOCKET Socket) {
+void PingConn::OnCloseable(SOCKET Socket) {
     logger("%s", __FUNCTION__);
     CloseSocket(Socket);
 }
@@ -37,11 +34,11 @@ long long TcpConn::Duration() {
     return duration.count();
 }
 
-void EchoConn::Start(const char* ip, int port, int count) {
+void PingConn::Start(const char* ip, int port, int count) {
     try {
         long flag = EPOLLOUT;
 
-        IPoller* conn_poller = new EPoller(new EchoConn(), 2);
+        IPoller* conn_poller = new EPoller(new PingConn(), 2);
         EPoller::reserved_list_.push_back(conn_poller);
 
         // Reactor
@@ -51,14 +48,21 @@ void EchoConn::Start(const char* ip, int port, int count) {
             }
         }).detach();
 
+        struct timeval timeout {
+            timeout_sec, 0
+        };
+
         for (int i = 0; i < count; ++i) {
-            int echo_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            int ping_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            setsockopt(ping_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+            setsockopt(ping_socket, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+
             struct sockaddr_in cmd;
             cmd.sin_family = AF_INET;
             cmd.sin_addr.s_addr = inet_addr(ip);
             cmd.sin_port = htons(port);
             auto start = system_clock::now();
-            if (connect(echo_socket, (sockaddr*)&cmd, sizeof(cmd)) != SOCKET_ERROR) {
+            if (connect(ping_socket, (sockaddr*)&cmd, sizeof(cmd)) != SOCKET_ERROR) {
                 auto end = system_clock::now();
                 auto duration = duration_cast<milliseconds>(end - start);
                 auto time = duration.count();
@@ -75,8 +79,14 @@ void EchoConn::Start(const char* ip, int port, int count) {
                     color = "\e[1;41m";
                 }
                 logger("\tFrom %s%s\e[0m time=%s%lld ms\e[0m", color, ip, color, time);
-                conn_poller->AddSocket(echo_socket, flag);
-            } else {
+                conn_poller->AddSocket(ping_socket, flag);
+            }
+
+            else if (errno == EINPROGRESS) {
+                logger("\tFrom \e[1;41m%s\e[0m time=\e[47;30mtimeout\e[0m", ip);
+            }
+
+            else {
                 NetEx();
             }
         }

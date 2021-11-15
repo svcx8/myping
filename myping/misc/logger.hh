@@ -7,6 +7,6 @@ using std::cout;
 using std::endl;
 
 #define logger(str, ...) \
-    std::printf(str "\n", __VA_ARGS__);
+    std::printf(str "\n", ##__VA_ARGS__)
 
 #endif

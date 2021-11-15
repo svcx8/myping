@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
     argv += optind;
 
     if (argc > 0)
-        EchoConn::Start(*argv, port, count);
+        PingConn::Start(*argv, port, count);
     else
         help();
 }
