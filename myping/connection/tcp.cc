@@ -78,12 +78,13 @@ void PingConn::Start(const char* ip, int port, int count) {
                 else {
                     color = "\e[1;41m";
                 }
-                logger("\tFrom %s%s\e[0m time=%s%lld ms\e[0m", color, ip, color, time);
+                logger("\t[%d/%d] From %s%s\e[0m time=%s%lld ms\e[0m", i + 1, count, color, ip, color, time);
                 conn_poller->AddSocket(ping_socket, flag);
             }
 
             else if (errno == EINPROGRESS) {
-                logger("\tFrom \e[1;41m%s\e[0m time=\e[47;30mtimeout\e[0m", ip);
+                logger("\t[%d/%d] From \e[1;41m%s\e[0m time=\e[47;30mtimeout\e[0m", i + 1, count, ip);
+                conn_poller->RemoveCloseSocket(ping_socket);
             }
 
             else {
