@@ -1,11 +1,12 @@
-#include "connection/tcp.hh"
+#include "ping/tcp.hh"
 
 #include <cstring>
 
-#include <misc/getopt.h>
+#include "misc/getopt.h"
+#include "misc/logger.hh"
 
 void help() {
-    printf("Usage: myping [ip] [-c count] [-p port]\n");
+    logger("Usage: myping [ip] [-c count] [-p port]");
     exit(EXIT_FAILURE);
 }
 
@@ -22,7 +23,7 @@ int main(int argc, char** argv) {
             port = atoi(optarg);
             break;
         case '?':
-            printf("Unknow option: %c\n", optopt);
+            logger("Unknow option: %c", optopt);
             break;
         default:
             help();
@@ -32,8 +33,10 @@ int main(int argc, char** argv) {
     argc -= optind;
     argv += optind;
 
-    if (argc > 0)
+    if (argc > 0) {
         PingConn::Start(*argv, port, count);
+    }
+
     else
         help();
 }

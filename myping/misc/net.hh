@@ -10,21 +10,18 @@
 #include "logger.hh"
 #ifdef __unix__
 #include <arpa/inet.h>
-#include <cstdint>
-#include <errno.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <sys/epoll.h>
-#include <sys/socket.h>
+#include <sys/select.h>
 #include <unistd.h>
 
-#define SOCKET int
-#define FALSE 0
+#define SleepSec(sec) sleep(sec)
 #define SOCKET_ERROR (-1)
-#define SD_RECEIVE 0x00
-#define SD_SEND 0x01
-#define SD_BOTH 0x02
 #define CloseSocket close
+
+#else
+#include <winsock.h>
+
+#define SleepSec(sec) Sleep(sec * 1000)
+#define CloseSocket closesocket
 #endif
 
 class NetException : public BaseException {
@@ -37,7 +34,7 @@ public:
         FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                        NULL, WSAGetLastError(),
                        MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
-                       (LPSTR)&Buffer, 128, NULL);
+                       (LPSTR)&buffer_, 128, NULL);
         result_ = buffer_;
 #endif
 
