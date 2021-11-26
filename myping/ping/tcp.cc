@@ -26,7 +26,7 @@ void PingConn::Start(const char* ip, int port, int count) {
     WSADATA wsa_data;
     WSAStartup(0x0201, &wsa_data);
 #endif
-
+    logger("[myping] %s:%d, count: %d", ip, port, count);
     struct timeval timeout {
         timeout_sec, 0
     };
