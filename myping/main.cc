@@ -21,9 +21,17 @@ PARSEOPTION:
         switch (opt) {
         case 'c':
             count = atoi(optarg);
+            if (count < 1) {
+                logger("It needs 1 count at least.");
+                return 0;
+            }
             break;
         case 'p':
             port = atoi(optarg);
+            if (port < 1 || port > 65535) {
+                logger("The valid tcp port is 1~65535");
+                return 0;
+            }
             break;
         case '?':
             logger("Unknow option: %c", optopt);
