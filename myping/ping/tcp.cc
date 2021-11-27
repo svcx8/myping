@@ -101,6 +101,7 @@ void PingConn::Start(const char* ip, int port, int count) {
         }
     }
 
-    logger("\n\tSent: %d\tRecv: %d\tLost: %d\t(%d%)", count, recv, count - recv, (count - recv) * 100 / count);
-    logger("\tFastest: %dms\tSlowest: %dms\tAverage: %dms", fastest, slowest, (fastest + slowest) / 2);
+    logger("\n\tSent: %d\tReceived: %d\tLost: %d\t(%d%% loss)", count, recv, count - recv, (count - recv) * 100 / count);
+    if (recv)
+        logger("\tFastest: %dms\tSlowest: %dms\tAverage: %dms", fastest, slowest, (fastest + slowest) / 2);
 }
