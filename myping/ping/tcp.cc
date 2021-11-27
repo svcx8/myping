@@ -31,6 +31,10 @@ void PingConn::Start(const char* ip, int port, int count) {
         timeout_sec, 0
     };
 
+    int recv = 0;
+    int fastest = INT_MAX;
+    int slowest = 0;
+
     for (int i = 0; i < count; ++i) {
         SleepSec(interval);
         try {
@@ -62,6 +66,10 @@ void PingConn::Start(const char* ip, int port, int count) {
                         auto end = system_clock::now();
                         auto duration = duration_cast<milliseconds>(end - start);
                         int time = duration.count();
+
+                        fastest = fastest > time ? time : fastest;
+                        slowest = slowest < time ? time : slowest;
+
                         const char* color = " \e[0m";
                         if (time < 50) {
                             color = "\e[1;30;42m";
@@ -77,10 +85,11 @@ void PingConn::Start(const char* ip, int port, int count) {
                         logger("\t[%d/%d]\tFrom %s%s\e[0m\ttime=%s%d ms\e[0m", i + 1, count, color, ip, color, time);
 
                         CloseSocket(ping_socket);
+                        recv++;
                     }
 
                 } else if (result == 0) {
-                    logger("\t[%d/%d] From \e[1;41m%s\e[0m time=\e[47;30mtimeout\e[0m", i + 1, count, ip);
+                    logger("\t[%d/%d]\tFrom \e[1;41m%s\e[0m\ttime=\e[47;30mtimeout\e[0m", i + 1, count, ip);
                     CloseSocket(ping_socket);
                 } else {
                     throw NetEx();
@@ -91,4 +100,7 @@ void PingConn::Start(const char* ip, int port, int count) {
             logger("Exception: %s\n[%s] [%s] Line: #%d", ex.result_, ex.file_, ex.function_, ex.line_);
         }
     }
+
+    logger("\n\tSent: %d\tRecv: %d\tLost: %d\t(%d%)", count, recv, count - recv, (count - recv) * 100 / count);
+    logger("\tFastest: %dms\tSlowest: %dms\tAverage: %dms", fastest, slowest, (fastest + slowest) / 2);
 }
