@@ -2,7 +2,6 @@
 
 #include "misc/net.hh"
 
-using std::thread;
 using std::chrono::duration_cast;
 using std::chrono::milliseconds;
 using std::chrono::system_clock;
@@ -34,6 +33,45 @@ void PingConn::Start(const char* ip, int port, int count) {
     int recv = 0;
     int fastest = INT_MAX;
     int slowest = 0;
+    int multiple_of_ten = count / 10;
+    char count_prefix[6] = "%d";
+
+    if (multiple_of_ten) {
+        int count_of_zero = 1;
+        while (multiple_of_ten) {
+            count_of_zero++;
+            multiple_of_ten /= 10;
+        }
+
+        count_prefix[1] = 0x30;
+        if (count_of_zero == 10) {
+            count_prefix[2] = 0x31;
+            count_prefix[3] = 0x30;
+            count_prefix[4] = 0x64;
+
+        }
+
+        else {
+            count_prefix[2] = 0x30 + count_of_zero;
+            count_prefix[3] = 0x64;
+        }
+    }
+
+    char full_prefix[15] = "\t[";
+    int strlen_of_count_prefix = strlen(count_prefix);
+    memcpy(&full_prefix[2], count_prefix, strlen_of_count_prefix);
+    memcpy(&full_prefix[strlen_of_count_prefix + 2], "/", 1);
+    memcpy(&full_prefix[strlen_of_count_prefix + 3], count_prefix, strlen_of_count_prefix);
+    memcpy(&full_prefix[strlen_of_count_prefix + strlen_of_count_prefix + 3], "]", 1);
+
+    char normal_log_format[32 + 15]{};
+    int strlen_of_full_prefix = strlen(full_prefix);
+    memcpy(normal_log_format, full_prefix, strlen_of_full_prefix);
+    memcpy(&normal_log_format[strlen_of_full_prefix], "\tFrom %s%s\e[0m\ttime=%s%d ms\e[0m\n", strlen("\tFrom %s%s\e[0m\ttime=%s%d ms\e[0m\n"));
+
+    char timeout_log_format[45 + 15]{};
+    memcpy(timeout_log_format, full_prefix, strlen_of_full_prefix);
+    memcpy(&timeout_log_format[strlen_of_full_prefix], "\tFrom \e[1;41m%s\e[0m\ttime=\e[47;30mtimeout\e[0m\n", strlen("\tFrom \e[1;41m%s\e[0m\ttime=\e[47;30mtimeout\e[0m\n"));
 
     for (int i = 0; i < count; ++i) {
         SleepSec(interval);
@@ -82,14 +120,14 @@ void PingConn::Start(const char* ip, int port, int count) {
                         else {
                             color = "\e[1;41m";
                         }
-                        logger("\t[%d/%d]\tFrom %s%s\e[0m\ttime=%s%d ms\e[0m", i + 1, count, color, ip, color, time);
+                        std::printf(normal_log_format, i + 1, count, color, ip, color, time);
 
                         CloseSocket(ping_socket);
                         recv++;
                     }
 
                 } else if (result == 0) {
-                    logger("\t[%d/%d]\tFrom \e[1;41m%s\e[0m\ttime=\e[47;30mtimeout\e[0m", i + 1, count, ip);
+                    std::printf(timeout_log_format, i + 1, count, ip);
                     CloseSocket(ping_socket);
                 } else {
                     throw NetEx();
